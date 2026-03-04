@@ -11,6 +11,7 @@ from users.views import (
     CustomTokenObtainPairView,
     RegistrationAPIView,
 )
+from users.google_oauth import GoogleLoginAPIView, OauthCodeSerializer
 
 urlpatterns = [
     path("registration/", RegistrationAPIView.as_view()),
@@ -20,4 +21,6 @@ urlpatterns = [
     path("api/v1/jwt/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/v1/jwt/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/v1/jwt/verify/", TokenVerifyView.as_view(), name="token_verify"),
+
+    path("google-login/", GoogleLoginAPIView.as_view()),
 ]
