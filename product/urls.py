@@ -1,9 +1,10 @@
-from django.urls import path
+from django.urls import path, include
 from .views import (
     CategoryListCreateAPIView,
     CategoryDetailAPIView,
     ProductListCreateAPIView,
     ProductDetailAPIView,
+    ReviewViewSet,
     ProductWithReviewsAPIView
 )
 
