@@ -1,21 +1,23 @@
-"""
-Django settings for shop_api project.
-"""
-
 import os
 from pathlib import Path
 from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-#  ОБЯЗАТЕЛЬНО — фикс ошибки
-SECRET_KEY = 'django-insecure-123456'
+# Секретный ключ
+SECRET_KEY = os.environ.get('SECRET', 'your-default-secret')
 
-DEBUG = True
+# DEBUG через переменную окружения, по умолчанию True для локали
+DEBUG = True if os.environ.get('DEBUG', 'on') == 'on' else False
 
-ALLOWED_HOSTS = []
+# Разрешённые хосты
+if DEBUG:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+else:
+    # В продакшене указать реальные домены
+    ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
 
-#  Apps
+# Приложения
 INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
@@ -25,20 +27,17 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # third-party
     'rest_framework',
     'rest_framework.authtoken',
     'drf_yasg',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
+    "rest_framework_simplejwt.token_blacklist",
 
-    # local
     'product',
     'users',
 ]
 
-
-#  Middleware
+# Middleware
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -47,14 +46,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'querycount.middleware.QueryCountMiddleware',
+    'querycount.middleware.QueryCountMiddleware'
 ]
-
 
 ROOT_URLCONF = 'shop_api.urls'
 
-
-#  Templates
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -70,11 +66,9 @@ TEMPLATES = [
     },
 ]
 
-
 WSGI_APPLICATION = 'shop_api.wsgi.application'
 
-
-#  Database (sqlite)
+# База данных
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -82,8 +76,7 @@ DATABASES = {
     }
 }
 
-
-#  Password validation
+# Валидаторы пароля
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -91,30 +84,28 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-
-#  Localization
+# Локализация
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Bishkek'
 USE_I18N = True
 USE_TZ = True
 
-
-#  Static
+# Статика
 STATIC_URL = 'static/'
-
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Кастомная модель пользователя
+AUTH_USER_MODEL = "users.CustomUser"
 
-#  Custom user
-AUTH_USER_MODEL = 'users.CustomUser'
-
+# Django REST Framework
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
+    ],
 }
-#  Настройки для Simple JWT
+
+# Simple JWT
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -122,26 +113,8 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
 }
-#  Настройки для drf-yasg (Swagger)
-SWAGGER_SETTINGS = {
-    "SECURITY_DEFINITIONS": {
-        "JWT": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
-        }
-    }
-}
-#  Настройки для django-querycount
-QUERYCOUNT = {
-    'THRESHOLDS': {
-        'MEDIUM': 50,
-        'HIGH': 200,
-        'MIN_TIME_TO_LOG': 0,
-        'MIN_QUERY_COUNT_TO_LOG': 0
-    },
-    'IGNORE_REQUEST_PATTERNS': [],
-    'IGNORE_SQL_PATTERNS': [],
-    'DISPLAY_DUPLICATES': None,
-    'RESPONSE_HEADER': 'X-DjangoQueryCount-Count'
-}
+
+# Google OAuth 2.0
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:8000/google-login/")

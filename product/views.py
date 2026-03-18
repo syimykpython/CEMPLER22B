@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from django.db import transaction
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
@@ -20,7 +21,7 @@ from common.permissions import IsOwner, IsAnonymous
 
 PAGE_SIZE = 5
 
-# -------------------- Пагинация --------------------
+
 class CustomPagination(PageNumberPagination):
     def get_paginated_response(self, data):
         return Response(OrderedDict([
@@ -33,7 +34,7 @@ class CustomPagination(PageNumberPagination):
     def get_page_size(self, request):
         return PAGE_SIZE
 
-# -------------------- Категории --------------------
+
 class CategoryListCreateAPIView(ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -42,8 +43,10 @@ class CategoryListCreateAPIView(ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         serializer = CategoryValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         category = Category.objects.create(**serializer.validated_data)
-        return Response(CategorySerializer(category).data, status=status.HTTP_201_CREATED)
+        return Response(data=CategorySerializer(category).data,
+                        status=status.HTTP_201_CREATED)
 
 
 class CategoryDetailAPIView(RetrieveUpdateDestroyAPIView):
@@ -55,11 +58,13 @@ class CategoryDetailAPIView(RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         serializer = CategoryValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         instance.name = serializer.validated_data.get('name')
         instance.save()
-        return Response(CategorySerializer(instance).data)
 
-# -------------------- Продукты --------------------
+        return Response(data=CategorySerializer(instance).data)
+
+
 class ProductListCreateAPIView(ListCreateAPIView):
     queryset = Product.objects.select_related('category').all()
     serializer_class = ProductSerializer
@@ -67,17 +72,28 @@ class ProductListCreateAPIView(ListCreateAPIView):
     permission_classes = (IsOwner | IsAnonymous,)
 
     def post(self, request, *args, **kwargs):
-        serializer = ProductValidateSerializer(data=request.data, context={'request': request})
+        email = request.auth.get("email")
+        print(email)
+        serializer = ProductValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        # Get validated data
+        title = serializer.validated_data.get('title')
+        description = serializer.validated_data.get('description')
+        price = serializer.validated_data.get('price')
+        category = serializer.validated_data.get('category')
+
+        # Create product
         product = Product.objects.create(
-            title=serializer.validated_data.get('title'),
-            description=serializer.validated_data.get('description'),
-            price=serializer.validated_data.get('price'),
-            category=serializer.validated_data.get('category'),
+            title=title,
+            description=description,
+            price=price,
+            category=category,
             owner_id=request.auth.get("user_id")
         )
-        return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
+
+        return Response(data=ProductSerializer(product).data,
+                        status=status.HTTP_201_CREATED)
 
 
 class ProductDetailAPIView(RetrieveUpdateDestroyAPIView):
@@ -88,7 +104,7 @@ class ProductDetailAPIView(RetrieveUpdateDestroyAPIView):
 
     def put(self, request, *args, **kwargs):
         product = self.get_object()
-        serializer = ProductValidateSerializer(data=request.data, context={'request': request})
+        serializer = ProductValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         product.title = serializer.validated_data.get('title')
@@ -97,9 +113,9 @@ class ProductDetailAPIView(RetrieveUpdateDestroyAPIView):
         product.category = serializer.validated_data.get('category')
         product.save()
 
-        return Response(ProductSerializer(product).data)
+        return Response(data=ProductSerializer(product).data)
 
-# -------------------- Отзывы --------------------
+
 class ReviewViewSet(ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
@@ -110,12 +126,20 @@ class ReviewViewSet(ModelViewSet):
         serializer = ReviewValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        # Get validated data
+        text = serializer.validated_data.get('text')
+        stars = serializer.validated_data.get('stars')
+        product = serializer.validated_data.get('product')
+
+        # Create review
         review = Review.objects.create(
-            text=serializer.validated_data.get('text'),
-            stars=serializer.validated_data.get('stars'),
-            product=serializer.validated_data.get('product')
+            text=text,
+            stars=stars,
+            product=product
         )
-        return Response(ReviewSerializer(review).data, status=status.HTTP_201_CREATED)
+
+        return Response(data=ReviewSerializer(review).data,
+                        status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         review = self.get_object()
@@ -127,13 +151,14 @@ class ReviewViewSet(ModelViewSet):
         review.product = serializer.validated_data.get('product')
         review.save()
 
-        return Response(ReviewSerializer(review).data)
+        return Response(data=ReviewSerializer(review).data)
 
-# -------------------- Продукты с отзывами --------------------
+
 class ProductWithReviewsAPIView(APIView):
     def get(self, request):
         paginator = CustomPagination()
         products = Product.objects.select_related('category').prefetch_related('reviews').all()
         result_page = paginator.paginate_queryset(products, request)
+
         serializer = ProductWithReviewsSerializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)
