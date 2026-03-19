@@ -12,12 +12,18 @@ from .serializers import (
     AuthValidateSerializer,
     ConfirmationSerializer
 )
-from users.models import ConfirmationCode, CustomUser
+from users.models import CustomUser
 import random
 import string
 
 from users import serializers
 from rest_framework_simplejwt.views import TokenObtainPairView
+
+from common.redis_service import (
+    set_confirmation_code,
+    delete_confirmation_code
+)
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = serializers.CustomTokenObtainPairSerializer
@@ -58,7 +64,6 @@ class RegistrationAPIView(CreateAPIView):
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
 
-        # Use transaction to ensure data consistency
         with transaction.atomic():
             user = CustomUser.objects.create_user(
                 email=email,
@@ -66,13 +71,9 @@ class RegistrationAPIView(CreateAPIView):
                 is_active=False
             )
 
-            # Create a random 6-digit code
             code = ''.join(random.choices(string.digits, k=6))
 
-            confirmation_code = ConfirmationCode.objects.create(
-                user=user,
-                code=code
-            )
+            set_confirmation_code(user.id, code)
 
         return Response(
             status=status.HTTP_201_CREATED,
@@ -99,7 +100,7 @@ class ConfirmUserAPIView(CreateAPIView):
 
             token, _ = Token.objects.get_or_create(user=user)
 
-            ConfirmationCode.objects.filter(user=user).delete()
+            delete_confirmation_code(user_id)
 
         return Response(
             status=status.HTTP_200_OK,

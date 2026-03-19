@@ -4,11 +4,6 @@ from users.managers import CustomUserManager
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
-
-    first_name = models.CharField(max_length=150, blank=True)
-    last_name = models.CharField(max_length=150, blank=True)
-    registration_source = models.CharField(max_length=50, blank=True, null=True)
-
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
@@ -17,9 +12,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.email or ""
-
 
 class ConfirmationCode(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='confirmation_code')

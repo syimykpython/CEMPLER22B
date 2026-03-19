@@ -4,20 +4,14 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Секретный ключ
-SECRET_KEY = os.environ.get('SECRET', 'your-default-secret')
+SECRET_KEY = os.environ.get('SECRET', 'django-insecure-secret-key')
 
-# DEBUG через переменную окружения, по умолчанию True для локали
-DEBUG = True if os.environ.get('DEBUG', 'on') == 'on' else False
+# Для разработки DEBUG включаем по умолчанию True
+DEBUG = True if os.environ.get('DEBUG') == 'on' else True
 
-# Разрешённые хосты
-if DEBUG:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-else:
-    # В продакшене указать реальные домены
-    ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+# Разрешить любые хосты для разработки
+ALLOWED_HOSTS = ['*']
 
-# Приложения
 INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
@@ -26,18 +20,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'rest_framework',
+    'product',
+    'users',
     'rest_framework.authtoken',
     'drf_yasg',
     'rest_framework_simplejwt',
     "rest_framework_simplejwt.token_blacklist",
-
-    'product',
-    'users',
 ]
 
-# Middleware
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -68,7 +59,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'shop_api.wsgi.application'
 
-# База данных
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -76,7 +66,6 @@ DATABASES = {
     }
 }
 
-# Валидаторы пароля
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -84,28 +73,23 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Локализация
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Bishkek'
 USE_I18N = True
 USE_TZ = True
 
-# Статика
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Кастомная модель пользователя
 AUTH_USER_MODEL = "users.CustomUser"
 
-# Django REST Framework
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "AuthToken": {"type": "apiKey", "name": "Authorization", "in": "header"},
+        "JWT": {"type": "apiKey", "name": "Authorization", "in": "header"},
+    }
 }
 
-# Simple JWT
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -114,7 +98,12 @@ SIMPLE_JWT = {
     "UPDATE_LAST_LOGIN": True,
 }
 
-# Google OAuth 2.0
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
-GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:8000/google-login/")
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/3",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient"
+        }
+    }
+}
