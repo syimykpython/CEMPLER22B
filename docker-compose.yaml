@@ -1,20 +1,50 @@
-version: '3'
+version: "3.9"
+
 services:
-  shop_api:
-    build:
-      context: .
-    command: sh -c "python manage.py runserver 0.0.0.0:8000"
-    ports:
-      - "7001:8000"
-    depends_on:
-      - shop_api_db
-  shop_api_db:
-    image: "postgres:14"
-    environment:
-      - POSTGRES_DB=shop_api_db
-      - POSTGRES_USER=shop_api_user_db
-      - POSTGRES_PASSWORD=12345
+  web:
+    build: .
+    command: gunicorn shop_api.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - 'shop_api-data:/var/lib/postgresql/data'
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - .env
+
+  redis:
+    image: redis:7
+
+  celery:
+    build: .
+    command: celery -A shop_api worker -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+
+  celery-beat:
+    build: .
+    command: celery -A shop_api beat -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+
 volumes:
-  shop_api-data:
+  postgres_data:
